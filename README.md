@@ -1,5 +1,5 @@
 # CodeBreaker
-he CodeBreaker program is designed as a game or puzzle-solving application where the player must guess a hidden code based on feedback provided after each attempt.
+The CodeBreaker program is designed as a game or puzzle-solving application where the player must guess a hidden code based on feedback provided after each attempt.
 he game provides clues in the form of correct matches (both in value and position) and incorrect matches (values that exist in the code but are in the wrong position). The program will handle multiple rounds of guessing, give real-time feedback, and allow the user to continue until the correct code is guessed or the maximum number of attempts is reached.
 
 Key Features:
