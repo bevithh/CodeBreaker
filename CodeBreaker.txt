@@ -1,0 +1,215 @@
+  1|_start:
+  2|;
+  3|; Read input data
+  4|;
+  5|; Ask for codemaker's name
+  6|      MOV R0, #str_ask_codemaker
+  7|      STR R0, .WriteString
+  8|; Read in codemaker's name
+  9|      MOV R0, #codemaker
+ 10|      STR R0, .ReadString
+ 11|; Ask for codebreaker's name
+ 12|      MOV R0, #str_ask_codebreaker
+ 13|      STR R0, .WriteString
+ 14|; Read in codebreaker's name
+ 15|      MOV R0, #codebreaker
+ 16|      STR R0, .ReadString
+ 17|; Ask for number of guesses
+ 18|      MOV R0, #str_ask_guesses
+ 19|      STR R0, .WriteString
+ 20|; Read number of guesses into R8
+ 21|      LDR R8, .InputNum
+ 22|;
+ 23|; Print input data
+ 24|;
+ 25|; Print codemaker's name
+ 26|      MOV R0, #str_name_codemaker
+ 27|      STR R0, .WriteString
+ 28|      MOV R0, #codemaker
+ 29|      STR R0, .WriteString
+ 30|; Print codebreaker's name
+ 31|      MOV R0, #str_name_codebreaker
+ 32|      STR R0, .WriteString
+ 33|      MOV R0, #codebreaker
+ 34|      STR R0, .WriteString
+ 35|; Print codemaker's name
+ 36|      MOV R0, #str_num_guesses
+ 37|      STR R0, .WriteString
+ 38|      STR R8, .WriteUnsignedNum
+ 39|; Print new line
+ 40|      MOV R0, #0x0A
+ 41|      STR R0, .WriteChar
+ 42|;
+ 43|; Get code
+ 44|;
+ 45|; Print codemaker request
+ 46|      MOV R0, #codemaker
+ 47|      STR R0, .WriteString
+ 48|      MOV R0, #str_enter_code
+ 49|      STR R0, .WriteString
+ 50|; Read in code
+ 51|      MOV R0, #secretcode
+ 52|      BL getcode
+ 53|      MOV R12, #0       ; Guess
+ 54|guess_loop:
+ 55|; Print codebreaker request
+ 56|      MOV R0, #codebreaker
+ 57|      STR R0, .WriteString
+ 58|      MOV R0, #str_make_guess
+ 59|      STR R0, .WriteString
+ 60|; Print guess + 1
+ 61|      MOV R0, R12
+ 62|      ADD R0, R0, #1
+ 63|      STR R0, .WriteUnsignedNum
+ 64|; Print new line
+ 65|      MOV R0, #0x0A
+ 66|      STR R0, .WriteChar
+ 67|; Read in code
+ 68|      MOV R0, #querycode
+ 69|      BL getcode
+ 70|; Compare codes
+ 71|      BL comparecodes
+ 72|; If 4 position matches, you win
+ 73|      CMP R0, #4
+ 74|      BEQ win
+ 75|      MOV R10, R0
+ 76|      MOV R11, R1
+ 77|; Print position matches
+ 78|      MOV R0, #str_match_position
+ 79|      STR R0, .WriteString
+ 80|      STR R10, .WriteUnsignedNum
+ 81|; Print colour matches
+ 82|      MOV R0, #str_match_colour
+ 83|      STR R0, .WriteString
+ 84|      STR R11, .WriteUnsignedNum
+ 85|; Print new line
+ 86|      MOV R0, #0x0A
+ 87|      STR R0, .WriteChar
+ 88|; Increment guess
+ 89|      ADD R12, R12, #1
+ 90|; Loop if guesses remaining
+ 91|      CMP R12, R8
+ 92|      BNE guess_loop
+ 93|; Print losing message
+ 94|      MOV R0, #codebreaker
+ 95|      STR R0, .WriteString
+ 96|      MOV R0, #str_lose
+ 97|      STR R0, .WriteString
+ 98|      B game_over
+ 99|win:
+100|; Print winning message
+101|      MOV R0, #codebreaker
+102|      STR R0, .WriteString
+103|      MOV R0, #str_win
+104|      STR R0, .WriteString
+105|game_over:
+106|      MOV R0, #str_game_over
+107|      STR R0, .WriteString
+108|      HALT
+109|;
+110|; Gets code from user
+111|;
+112|; Arguments:
+113|; R0: array
+114|;
+115|getcode:
+116|      PUSH {LR}         ; Save the return address
+117|getcode_loop:
+118|      STR R0, .ReadString
+119|      MOV R1, #0        ; Initialise loop counter
+120|validate_loop:
+121|      LDRB R2, [R0, R1] ; Load a character from the string
+122|      CMP R2, #0        ; Check if end of string (null terminator)
+123|      BEQ validate_end  ; If end of string, break loop
+124|      CMP R1, #3        ; Check if length exceeds 3
+125|      BGT getcode_loop  ; If length > 3, get input again
+126|; Check if character is valid (r, g, b, y, p, c)
+127|      CMP R2, #114      ; ASCII for 'r'
+128|      BEQ validate_next
+129|      CMP R2, #103      ; ASCII for 'g'
+130|      BEQ validate_next
+131|      CMP R2, #98       ; ASCII for 'b'
+132|      BEQ validate_next
+133|      CMP R2, #121      ; ASCII for 'y'
+134|      BEQ validate_next
+135|      CMP R2, #112      ; ASCII for 'p'
+136|      BEQ validate_next
+137|      CMP R2, #99       ; ASCII for 'c'
+138|      BEQ validate_next
+139|      B getcode_loop    ; Invalid character, get input again
+140|validate_next:
+141|      ADD R1, R1, #1    ; Increment loop counter
+142|      B validate_loop
+143|validate_end:
+144|      CMP R1, #4        ; Check if exactly 4 characters were entered
+145|      BNE getcode_loop  ; If not, get input again
+146|      RET
+147|;
+148|; Compares secret code to query code
+149|;
+150|; Returns:
+151|; R0: Position matches
+152|; R1: Colour matches
+153|;
+154|comparecodes:
+155|      PUSH {LR}
+156|; Initialise registers
+157|      MOV R0, #0
+158|      MOV R1, #0
+159|      MOV R2, #secretcode
+160|      MOV R3, #querycode
+161|      MOV R4, #0
+162|      MOV R5, #0
+163|loop:
+164|; Compare character from arrays
+165|      LDRB R6, [R2, R4]
+166|      LDRB R7, [R3, R5]
+167|      CMP R6, R7
+168|; Check next if no match
+169|      BNE next
+170|; Check if position match
+171|      CMP R4, R5
+172|      BEQ pos_match
+173|; Increment colour matches
+174|      ADD R1, R1, #1
+175|      B next
+176|pos_match:
+177|; Increment position matches
+178|      ADD R0, R0, #1
+179|next:
+180|; Increment counter 1
+181|      ADD R5, R5, #1
+182|; Limit to 4
+183|      CMP R5, #4
+184|      BNE loop
+185|; Reset counter 1, increment counter 2
+186|      MOV R5, #0
+187|      ADD R4, R4, #1
+188|; Limit to 4
+189|      CMP R4, #4
+190|      BNE loop
+191|      RET
+192|;
+193|; Game data and strings
+194|;
+195|      .data
+196|; Arrays
+197|codemaker: .BLOCK 128
+198|codebreaker: .BLOCK 128
+199|secretcode: .BLOCK 128
+200|querycode: .BLOCK 128
+201|; Strings
+202|str_ask_codemaker: .ASCIZ "Who is the codemaker?\n"
+203|str_ask_codebreaker: .ASCIZ "Who is the codebreaker?\n"
+204|str_ask_guesses: .ASCIZ "How many guesses?\n"
+205|str_enter_code: .ASCIZ ", please enter a 4-character secret code\n"
+206|str_name_codemaker: .ASCIZ "Codemaker is "
+207|str_name_codebreaker: .ASCIZ "\nCodebreaker is "
+208|str_num_guesses: .ASCIZ "\nMaximum number of guesses: "
+209|str_num_guess_remaining: .ASCIZ "Number of guesses remaining: "
+210|str_make_guess: .ASCIZ ", this is guess number: "
+211|str_match_position: .ASCIZ "Position matches: "
+212|str_match_colour: .ASCIZ ", Colour matches: "
+213|str_win: .ASCIZ ", you WIN!\n"
+214|str_lose: .ASCIZ ", you LOSE!\n"
+215|str_game_over: .ASCIZ "Game Over!"
